@@ -87,6 +87,7 @@ export function createRagdoll(world, scene, RAPIER) {
     },
     parts,
     meshes,
+    footColliders,
     setFootFriction(side, friction) {
       footColliders[side].setFriction(friction);
     },

@@ -181,10 +181,22 @@ async function init() {
       } else {
         // Planted: make foot kinematic so it stays put
         if (foot.bodyType() !== RAPIER.RigidBodyType.KinematicPositionBased) {
-          // Freeze foot where it landed
+          // Drop foot to ground level, then freeze
           const pos = foot.translation();
           foot.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
-          foot.setTranslation({ x: pos.x, y: pos.y, z: pos.z }, true);
+
+          // Raycast downward to find the surface below the foot
+          const rayOriginY = bodyPos.y + 1.0;
+          const ray = new RAPIER.Ray(
+            { x: pos.x, y: rayOriginY, z: pos.z },
+            { x: 0, y: -1, z: 0 }
+          );
+          const ragdollBodies = new Set(Object.values(ragdoll.parts).map(b => b.handle));
+          const hit = world.castRay(ray, 10.0, true, undefined, undefined, undefined, undefined,
+            (collider) => !ragdollBodies.has(collider.parent().handle));
+          const groundY = hit ? rayOriginY - hit.timeOfImpact + 0.05 : 0.05;
+
+          foot.setTranslation({ x: pos.x, y: groundY, z: pos.z }, true);
         }
 
         if (wasLifted[side]) {
