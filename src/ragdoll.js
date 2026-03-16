@@ -53,7 +53,7 @@ export function createRagdoll(world, scene, RAPIER) {
     const hipX = xSign * 0.15;
 
     const footDesc = RAPIER.RigidBodyDesc.dynamic()
-      .setTranslation(hipX, footHalfH, 0.05)
+      .setTranslation(hipX, footHalfH, 0)
       .setLinearDamping(4.0)
       .setAngularDamping(5.0)
       .setGravityScale(0);

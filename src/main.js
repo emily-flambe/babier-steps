@@ -118,11 +118,11 @@ async function init() {
     const midZ = (leftFP.z + rightFP.z) / 2;
     const bodyVel = ragdoll.body.linvel();
 
-    // Stronger follow + more damping = body stays over feet
+    // Critically-damped follow: k=15, c=2*sqrt(k*m)=30 for m=15
     ragdoll.body.addForce({
-      x: (midX - bodyPos.x) * 15.0 - bodyVel.x * 6.0,
+      x: (midX - bodyPos.x) * 15.0 - bodyVel.x * 30.0,
       y: 0,
-      z: (midZ - bodyPos.z) * 15.0 - bodyVel.z * 6.0
+      z: (midZ - bodyPos.z) * 15.0 - bodyVel.z * 30.0
     }, true);
 
     // ── Foot control ──
