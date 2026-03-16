@@ -1,0 +1,34 @@
+{
+  "name": "babier-steps",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "tunnel": "cloudflared tunnel --url http://localhost:5173",
+    "test": "npx playwright test",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/emily-flambe/babier-steps.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/emily-flambe/babier-steps/issues"
+  },
+  "homepage": "https://github.com/emily-flambe/babier-steps#readme",
+  "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "vite": "^8.0.0",
+    "wrangler": "^4.73.0"
+  }
+}
