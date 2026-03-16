@@ -72,7 +72,7 @@ export class Telemetry {
     const bodyQuat = new THREE.Quaternion(bodyRot.x, bodyRot.y, bodyRot.z, bodyRot.w);
     const currentUp = new THREE.Vector3(0, 1, 0).applyQuaternion(bodyQuat);
     const uprightDot = currentUp.dot(new THREE.Vector3(0, 1, 0)); // 1 = upright, 0 = horizontal
-    if (hipHeight < 0.8 || uprightDot < 0.3) {
+    if (hipHeight < 0.3 || uprightDot < 0.3) {
       this.stats.fellOver = true;
     }
 

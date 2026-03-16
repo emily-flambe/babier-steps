@@ -14,7 +14,6 @@ async function init() {
   const gravity = new RAPIER.Vector3(0.0, -9.81, 0.0);
   const world = new RAPIER.World(gravity);
 
-  // Fixed timestep for deterministic physics
   const PHYSICS_DT = 1 / 60;
   let accumulator = 0;
 
@@ -42,7 +41,6 @@ async function init() {
   const input = new InputManager();
   const telemetry = new Telemetry(ragdoll);
 
-  // Expose game state for Playwright
   if (typeof window !== 'undefined') {
     window.gameReady = false;
     window.gameInput = input;
@@ -57,27 +55,19 @@ async function init() {
   // Camera
   const cameraOffset = new THREE.Vector3(0, 3, 6);
 
-  // --- Foot control state ---
-  const footTarget = {
-    left: new THREE.Vector3(),
-    right: new THREE.Vector3()
-  };
+  // Foot control
+  const footTarget = { left: new THREE.Vector3(), right: new THREE.Vector3() };
   const wasLifted = { left: false, right: false };
 
-  // Tuning constants
-  const FOOT_SPEED = 2.5;
-  const FOOT_MAX_REACH = 0.8;
-  const FOOT_SPRING = 60.0;
-  const FOOT_DAMPER = 12.0;
+  const FOOT_SPEED = 3.0;
+  const FOOT_MAX_REACH = 1.0;
+  const FOOT_SPRING = 80.0;
+  const FOOT_DAMPER = 15.0;
 
-  const LEAN_FORCE = 12.0;
-  const UPRIGHT_TORQUE = 40.0;
-  const UPRIGHT_DAMPING = 12.0;
-  const HEIGHT_SPRING = 30.0;
-  const TARGET_HEIGHT = 1.6;
-
-  const PLANTED_FRICTION = 5.0;
-  const LIFTED_FRICTION = 0.1;
+  const LEAN_FORCE = 15.0;
+  const UPRIGHT_TORQUE = 50.0;
+  const UPRIGHT_DAMPING = 15.0;
+  const TARGET_HEIGHT = 1.4;
 
   let lastTime = performance.now();
 
@@ -93,29 +83,46 @@ async function init() {
 
     if (tiltAmount > 0.001) {
       correctionAxis.normalize();
-      ragdoll.body.addTorque(
-        { x: correctionAxis.x * tiltAmount * UPRIGHT_TORQUE,
-          y: 0,
-          z: correctionAxis.z * tiltAmount * UPRIGHT_TORQUE },
-        true
-      );
+      ragdoll.body.addTorque({
+        x: correctionAxis.x * tiltAmount * UPRIGHT_TORQUE,
+        y: 0,
+        z: correctionAxis.z * tiltAmount * UPRIGHT_TORQUE
+      }, true);
     }
 
     const angvel = ragdoll.body.angvel();
-    ragdoll.body.addTorque(
-      { x: -angvel.x * UPRIGHT_DAMPING,
-        y: -angvel.y * UPRIGHT_DAMPING,
-        z: -angvel.z * UPRIGHT_DAMPING },
-      true
-    );
+    ragdoll.body.addTorque({
+      x: -angvel.x * UPRIGHT_DAMPING,
+      y: -angvel.y * UPRIGHT_DAMPING,
+      z: -angvel.z * UPRIGHT_DAMPING
+    }, true);
 
-    // ── Height maintenance ──
-    if (bodyPos.y < TARGET_HEIGHT) {
-      ragdoll.body.addForce(
-        { x: 0, y: (TARGET_HEIGHT - bodyPos.y) * HEIGHT_SPRING, z: 0 },
-        true
-      );
-    }
+    // Read foot positions (used by height spring and follow force)
+    const leftFP = ragdoll.feet.left.translation();
+    const rightFP = ragdoll.feet.right.translation();
+
+    // ── Height spring — relative to feet, not absolute ──
+    const avgFootY = (leftFP.y + rightFP.y) / 2;
+    const desiredHeight = avgFootY + 1.0; // body ~1m above feet
+    const heightError = desiredHeight - bodyPos.y;
+    const bodyVelY = ragdoll.body.linvel().y;
+    ragdoll.body.addForce({
+      x: 0,
+      y: heightError * 60.0 - bodyVelY * 12.0,
+      z: 0
+    }, true);
+
+    // ── Body follows feet midpoint ──
+    const midX = (leftFP.x + rightFP.x) / 2;
+    const midZ = (leftFP.z + rightFP.z) / 2;
+    const bodyVel = ragdoll.body.linvel();
+
+    // Stronger follow + more damping = body stays over feet
+    ragdoll.body.addForce({
+      x: (midX - bodyPos.x) * 15.0 - bodyVel.x * 6.0,
+      y: 0,
+      z: (midZ - bodyPos.z) * 15.0 - bodyVel.z * 6.0
+    }, true);
 
     // ── Foot control ──
     const leftLifted = !!input.keys['KeyQ'];
@@ -129,12 +136,17 @@ async function init() {
       const xOff = side === 'left' ? -0.15 : 0.15;
 
       if (isLifted) {
+        // Switch to dynamic if it was kinematic
+        if (foot.bodyType() !== RAPIER.RigidBodyType.Dynamic) {
+          foot.setBodyType(RAPIER.RigidBodyType.Dynamic, true);
+        }
+
         const target = footTarget[side];
 
         if (!wasLifted[side]) {
           target.set(
             footPos.x - bodyPos.x - xOff,
-            0.15,
+            0.2,
             footPos.z - bodyPos.z
           );
         }
@@ -155,19 +167,21 @@ async function init() {
           z: bodyPos.z + target.z
         };
 
-        const dx = worldTarget.x - footPos.x;
-        const dy = worldTarget.y - footPos.y;
-        const dz = worldTarget.z - footPos.z;
-
         foot.addForce({
-          x: dx * FOOT_SPRING - footVel.x * FOOT_DAMPER,
-          y: dy * FOOT_SPRING - footVel.y * FOOT_DAMPER,
-          z: dz * FOOT_SPRING - footVel.z * FOOT_DAMPER
+          x: (worldTarget.x - footPos.x) * FOOT_SPRING - footVel.x * FOOT_DAMPER,
+          y: (worldTarget.y - footPos.y) * FOOT_SPRING - footVel.y * FOOT_DAMPER,
+          z: (worldTarget.z - footPos.z) * FOOT_SPRING - footVel.z * FOOT_DAMPER
         }, true);
 
-        ragdoll.setFootFriction(side, LIFTED_FRICTION);
+        ragdoll.setFootFriction(side, 0.1);
       } else {
-        ragdoll.setFootFriction(side, PLANTED_FRICTION);
+        // Planted: make foot kinematic so it stays put
+        if (foot.bodyType() !== RAPIER.RigidBodyType.KinematicPositionBased) {
+          // Freeze foot where it landed
+          const pos = foot.translation();
+          foot.setBodyType(RAPIER.RigidBodyType.KinematicPositionBased, true);
+          foot.setTranslation({ x: pos.x, y: pos.y, z: pos.z }, true);
+        }
 
         if (wasLifted[side]) {
           footTarget[side].set(0, 0, 0);
@@ -183,10 +197,8 @@ async function init() {
     if (input.keys['ArrowLeft']) ragdoll.body.addForce({ x: -LEAN_FORCE, y: 0, z: 0 }, true);
     if (input.keys['ArrowRight']) ragdoll.body.addForce({ x: LEAN_FORCE, y: 0, z: 0 }, true);
 
-    // Step physics
     world.step();
 
-    // Update telemetry
     telemetry.update(leftLifted, rightLifted);
   }
 
@@ -194,20 +206,18 @@ async function init() {
     requestAnimationFrame(gameLoop);
 
     const now = performance.now();
-    const frameDt = Math.min((now - lastTime) / 1000, 0.1); // cap to avoid spiral of death
+    const frameDt = Math.min((now - lastTime) / 1000, 0.1);
     lastTime = now;
 
-    // Fixed timestep accumulator
     accumulator += frameDt;
     while (accumulator >= PHYSICS_DT) {
       physicsStep();
       accumulator -= PHYSICS_DT;
     }
 
-    // Sync visuals
     syncPhysicsToMesh(ragdoll);
+    ragdoll.updateLegs();
 
-    // HUD
     leftStatus.textContent = input.keys['KeyQ'] ? 'LIFTED' : 'planted';
     rightStatus.textContent = input.keys['KeyE'] ? 'LIFTED' : 'planted';
 
@@ -216,7 +226,6 @@ async function init() {
     const dist = Math.sqrt((bp.x - startPos.x) ** 2 + (bp.z - startPos.z) ** 2);
     distanceEl.textContent = dist.toFixed(1);
 
-    // Camera follow
     camera.position.set(
       bp.x + cameraOffset.x,
       bp.y + cameraOffset.y,
