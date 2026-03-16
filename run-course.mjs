@@ -51,8 +51,7 @@ async function runCourse() {
     if (forward < 0) moveKeys.push('KeyS');
     if (sideways > 0) moveKeys.push('KeyD');
     if (sideways < 0) moveKeys.push('KeyA');
-    if (up > 0) moveKeys.push('KeyR');
-    if (up < 0) moveKeys.push('KeyF');
+    // Foot auto-lifts to fixed height, no R/F needed
 
     for (const k of moveKeys) await page.keyboard.down(k);
     await sleep(moveDur);
@@ -78,12 +77,7 @@ async function runCourse() {
     await page.keyboard.down(liftKey);
     await sleep(60);
 
-    // Raise foot
-    await page.keyboard.down('KeyR');
-    await sleep(height);
-    await page.keyboard.up('KeyR');
-
-    // Move forward
+    // Foot auto-lifts, just move forward
     await page.keyboard.down('KeyW');
     await sleep(forward);
     await page.keyboard.up('KeyW');

@@ -387,20 +387,16 @@ test.describe('Foot Control', () => {
     expect(afterX).toBeGreaterThan(beforeX + 0.1);
   });
 
-  test('R key raises lifted foot', async ({ page }) => {
+  test('lifted foot auto-rises to lift height', async ({ page }) => {
     await waitForGame(page);
     await resetTelemetry(page);
-
-    await page.keyboard.down('KeyQ');
-    await sleep(200);
 
     const beforeY = await page.evaluate(() => {
       return window.gametelemetry.ragdoll.feet.left.translation().y;
     });
 
-    await page.keyboard.down('KeyR');
+    await page.keyboard.down('KeyQ');
     await sleep(500);
-    await page.keyboard.up('KeyR');
 
     const afterY = await page.evaluate(() => {
       return window.gametelemetry.ragdoll.feet.left.translation().y;
@@ -408,37 +404,8 @@ test.describe('Foot Control', () => {
 
     await page.keyboard.up('KeyQ');
 
+    // Foot should auto-lift above ground
     expect(afterY).toBeGreaterThan(beforeY + 0.1);
-  });
-
-  test('F key lowers lifted foot', async ({ page }) => {
-    await waitForGame(page);
-    await resetTelemetry(page);
-
-    // First raise it
-    await page.keyboard.down('KeyQ');
-    await sleep(100);
-    await page.keyboard.down('KeyR');
-    await sleep(500);
-    await page.keyboard.up('KeyR');
-    await sleep(200);
-
-    const beforeY = await page.evaluate(() => {
-      return window.gametelemetry.ragdoll.feet.left.translation().y;
-    });
-
-    // Now lower it
-    await page.keyboard.down('KeyF');
-    await sleep(500);
-    await page.keyboard.up('KeyF');
-
-    const afterY = await page.evaluate(() => {
-      return window.gametelemetry.ragdoll.feet.left.translation().y;
-    });
-
-    await page.keyboard.up('KeyQ');
-
-    expect(afterY).toBeLessThan(beforeY - 0.1);
   });
 
   test('foot reach is clamped to max distance', async ({ page }) => {
@@ -808,12 +775,12 @@ test.describe('Settling & Energy', () => {
     await waitForGame(page);
     await resetTelemetry(page);
 
-    // Lift foot high, then plant
+    // Lift foot, move it forward, then plant
     await page.keyboard.down('KeyQ');
     await sleep(100);
-    await page.keyboard.down('KeyR');
+    await page.keyboard.down('KeyW');
     await sleep(500);
-    await page.keyboard.up('KeyR');
+    await page.keyboard.up('KeyW');
     await sleep(200);
     await page.keyboard.up('KeyQ');
 
@@ -880,18 +847,14 @@ test.describe('Stress Tests', () => {
     await page.keyboard.down('KeyE');
     await page.keyboard.down('KeyW');
     await page.keyboard.down('KeyA');
-    await page.keyboard.down('KeyR');
     await sleep(500);
     await page.keyboard.up('KeyW');
     await page.keyboard.up('KeyA');
-    await page.keyboard.up('KeyR');
     await page.keyboard.down('KeyS');
     await page.keyboard.down('KeyD');
-    await page.keyboard.down('KeyF');
     await sleep(500);
     await page.keyboard.up('KeyS');
     await page.keyboard.up('KeyD');
-    await page.keyboard.up('KeyF');
     await page.keyboard.up('KeyQ');
     await page.keyboard.up('KeyE');
     await sleep(1000);
@@ -953,7 +916,7 @@ test.describe('Stress Tests', () => {
     await waitForGame(page);
     await resetTelemetry(page);
 
-    const allKeys = ['KeyQ', 'KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR', 'KeyF',
+    const allKeys = ['KeyQ', 'KeyE', 'KeyW', 'KeyA', 'KeyS', 'KeyD',
       'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
 
     for (const k of allKeys) {

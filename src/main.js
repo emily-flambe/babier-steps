@@ -62,12 +62,13 @@ async function init() {
   const footTarget = { left: new THREE.Vector3(), right: new THREE.Vector3() };
   const wasLifted = { left: false, right: false };
 
-  const FOOT_SPEED = 3.0;
-  const FOOT_MAX_REACH = 1.0;
-  const FOOT_SPRING = 80.0;
-  const FOOT_DAMPER = 15.0;
+  const FOOT_SPEED = 4.0;
+  const FOOT_MAX_REACH = 1.2;
+  const FOOT_SPRING = 120.0;
+  const FOOT_DAMPER = 20.0;
+  const FOOT_LIFT_HEIGHT = 0.3;
 
-  const LEAN_FORCE = 15.0;
+  const LEAN_FORCE = 25.0;
   const UPRIGHT_TORQUE = 50.0;
   const UPRIGHT_DAMPING = 15.0;
   const TARGET_HEIGHT = 1.4;
@@ -150,7 +151,7 @@ async function init() {
         if (!wasLifted[side]) {
           target.set(
             footPos.x - bodyPos.x - xOff,
-            0.2,
+            FOOT_LIFT_HEIGHT,
             footPos.z - bodyPos.z
           );
         }
@@ -159,11 +160,14 @@ async function init() {
         if (input.keys['KeyS']) target.z += FOOT_SPEED * PHYSICS_DT;
         if (input.keys['KeyA']) target.x -= FOOT_SPEED * PHYSICS_DT;
         if (input.keys['KeyD']) target.x += FOOT_SPEED * PHYSICS_DT;
-        if (input.keys['KeyR']) target.y += FOOT_SPEED * PHYSICS_DT;
-        if (input.keys['KeyF']) target.y -= FOOT_SPEED * PHYSICS_DT;
 
-        target.clampLength(0, FOOT_MAX_REACH);
-        target.y = Math.max(0.05, Math.min(target.y, FOOT_MAX_REACH));
+        // Clamp horizontal reach, keep foot at lift height
+        const hLen = Math.sqrt(target.x * target.x + target.z * target.z);
+        if (hLen > FOOT_MAX_REACH) {
+          target.x *= FOOT_MAX_REACH / hLen;
+          target.z *= FOOT_MAX_REACH / hLen;
+        }
+        target.y = FOOT_LIFT_HEIGHT;
 
         const worldTarget = {
           x: bodyPos.x + xOff + target.x,
