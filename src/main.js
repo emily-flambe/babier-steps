@@ -5,6 +5,7 @@ import { createRagdoll } from './ragdoll.js';
 import { InputManager } from './input.js';
 import { syncPhysicsToMesh } from './sync.js';
 import { Telemetry } from './telemetry.js';
+import { createObstacleCourse } from './obstacles.js';
 
 async function init() {
   await RAPIER.init();
@@ -40,6 +41,7 @@ async function init() {
   const ragdoll = createRagdoll(world, scene, RAPIER);
   const input = new InputManager();
   const telemetry = new Telemetry(ragdoll);
+  const course = createObstacleCourse(world, scene, RAPIER);
 
   if (typeof window !== 'undefined') {
     window.gameReady = false;
@@ -50,6 +52,7 @@ async function init() {
   const leftStatus = document.getElementById('left-status');
   const rightStatus = document.getElementById('right-status');
   const distanceEl = document.getElementById('distance');
+  const progressEl = document.getElementById('progress');
   const startPos = new THREE.Vector3();
 
   // Camera
@@ -226,6 +229,8 @@ async function init() {
     if (startPos.lengthSq() === 0) startPos.set(bp.x, bp.y, bp.z);
     const dist = Math.sqrt((bp.x - startPos.x) ** 2 + (bp.z - startPos.z) ** 2);
     distanceEl.textContent = dist.toFixed(1);
+    const progress = Math.min(100, Math.max(0, (-bp.z / -course.finishZ) * 100));
+    progressEl.textContent = Math.floor(progress);
 
     camera.position.set(
       bp.x + cameraOffset.x,
