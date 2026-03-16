@@ -106,10 +106,10 @@ async function init() {
     const desiredHeight = avgFootY + 1.0; // body ~1m above feet
     const heightError = desiredHeight - bodyPos.y;
     const bodyVelY = ragdoll.body.linvel().y;
-    // Stiff critically-damped spring (k=300, c=2*sqrt(k*m) ≈ 134 for m=15)
+    // Critically-damped spring: k=60, c=2*sqrt(k*m)=60 for m=15
     ragdoll.body.addForce({
       x: 0,
-      y: heightError * 300.0 - bodyVelY * 134.0,
+      y: heightError * 60.0 - bodyVelY * 60.0,
       z: 0
     }, true);
 

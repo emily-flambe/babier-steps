@@ -18,12 +18,13 @@ export function createRagdoll(world, scene, RAPIER) {
   const torsoHalfW = 0.25;
   const torsoHalfH = 0.4;
   const torsoHalfD = 0.15;
-  const torsoY = 1.4;
+  const torsoY = 1.05;
 
   const torsoDesc = RAPIER.RigidBodyDesc.dynamic()
     .setTranslation(0, torsoY, 0)
     .setLinearDamping(2.0)
-    .setAngularDamping(5.0);
+    .setAngularDamping(5.0)
+    .setGravityScale(0);
   parts.body = world.createRigidBody(torsoDesc);
   world.createCollider(
     RAPIER.ColliderDesc.cuboid(torsoHalfW, torsoHalfH, torsoHalfD).setMass(15),
@@ -54,7 +55,8 @@ export function createRagdoll(world, scene, RAPIER) {
     const footDesc = RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(hipX, footHalfH, 0.05)
       .setLinearDamping(4.0)
-      .setAngularDamping(5.0);
+      .setAngularDamping(5.0)
+      .setGravityScale(0);
     parts[`foot_${side}`] = world.createRigidBody(footDesc);
     footColliders[side] = world.createCollider(
       RAPIER.ColliderDesc.cuboid(footHalfW, footHalfH, footHalfD)
